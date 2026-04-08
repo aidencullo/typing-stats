@@ -3,125 +3,516 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>acullo | typing stats</title>
+  <title>acullo | typing</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    :root {
+      --bg: #232323;
+      --sub: #646669;
+      --text: #d1d0c5;
+      --main: #e2b714;
+      --error: #ca4754;
+      --error-bg: #3a1f23;
+    }
+
+    html, body { height: 100%; }
+
     body {
-      background: #232323;
-      color: #d1d0c5;
-      font-family: 'Courier New', monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Roboto Mono', 'Courier New', monospace;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
+      padding: 2rem 1.5rem 6rem;
     }
 
-    h1 {
-      font-size: 1rem;
-      color: #646669;
-      letter-spacing: 0.15em;
-      margin-bottom: 2rem;
-    }
-
-    .stats {
+    header {
+      width: 100%;
+      max-width: 60rem;
       display: flex;
-      gap: 4rem;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4rem;
+    }
+
+    header h1 {
+      font-size: 1rem;
+      color: var(--sub);
+      letter-spacing: 0.15em;
+      font-weight: normal;
+    }
+
+    nav { display: flex; gap: 1.25rem; }
+
+    nav button {
+      background: none;
+      border: none;
+      color: var(--sub);
+      font-family: inherit;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      transition: color 0.15s;
+    }
+
+    nav button:hover, nav button.active { color: var(--text); }
+
+    main {
+      width: 100%;
+      max-width: 60rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .live {
+      display: flex;
+      gap: 2.5rem;
+      color: var(--main);
+      font-size: 1.5rem;
+      margin-bottom: 1.75rem;
+      min-height: 1.75rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .live.visible { opacity: 1; }
+
+    .live span { color: var(--sub); font-size: 0.95rem; margin-left: 0.4rem; }
+
+    .prompt {
+      font-size: 1.65rem;
+      line-height: 2.4rem;
+      letter-spacing: 0.02em;
+      color: var(--sub);
+      user-select: none;
+      cursor: text;
+      max-width: 60rem;
+      word-spacing: 0.15rem;
+    }
+
+    .prompt .char {
+      position: relative;
+      transition: color 0.05s;
+    }
+
+    .prompt .char.correct { color: var(--text); }
+    .prompt .char.incorrect { color: var(--error); background: var(--error-bg); }
+    .prompt .char.cursor::before {
+      content: '';
+      position: absolute;
+      left: -1px;
+      top: 10%;
+      width: 2px;
+      height: 80%;
+      background: var(--main);
+      animation: blink 1s steps(1) infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    #input {
+      position: absolute;
+      left: -9999px;
+      opacity: 0;
+    }
+
+    .controls {
+      margin-top: 2.5rem;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      align-items: center;
+      color: var(--sub);
+      font-size: 0.85rem;
+    }
+
+    .controls button {
+      background: none;
+      border: none;
+      color: var(--sub);
+      font-family: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 0.6rem 1rem;
+      border-radius: 0.4rem;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .controls button:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+    .results {
+      display: none;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .results.visible { display: flex; }
+
+    .results .big-stats {
+      display: flex;
+      gap: 5rem;
       align-items: flex-end;
     }
 
-    .stat {
-      text-align: center;
-    }
-
-    .stat .value {
-      font-size: 6rem;
+    .results .big-stats .stat .value {
+      font-size: 5.5rem;
       font-weight: bold;
-      color: #e2b714;
+      color: var(--main);
       line-height: 1;
     }
 
-    .stat .label {
-      font-size: 0.75rem;
-      color: #646669;
+    .results .big-stats .stat .label {
+      font-size: 0.8rem;
+      color: var(--sub);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      margin-top: 0.6rem;
+      margin-top: 0.5rem;
     }
 
-    #status {
-      color: #646669;
+    .results .meta {
+      color: var(--sub);
       font-size: 0.85rem;
-      margin-top: 2rem;
+      display: flex;
+      gap: 2rem;
+    }
+
+    .results .meta strong { color: var(--text); font-weight: normal; }
+
+    .history {
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .history.visible { display: flex; }
+
+    .history h2 {
+      color: var(--sub);
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      font-weight: normal;
+      margin-bottom: 0.75rem;
+    }
+
+    .history table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .history th, .history td {
+      text-align: left;
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid #2e2e2e;
+    }
+
+    .history th {
+      color: var(--sub);
+      font-weight: normal;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .history td.wpm { color: var(--main); font-weight: bold; }
+
+    #status {
+      color: var(--sub);
+      font-size: 0.8rem;
+      text-align: center;
+      margin-top: 1.25rem;
+      min-height: 1rem;
     }
 
     footer {
       position: fixed;
-      bottom: 1.5rem;
+      bottom: 1.25rem;
       color: #3c3c3c;
       font-size: 0.7rem;
     }
 
-    footer a { color: #646669; text-decoration: none; }
+    footer a { color: var(--sub); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .prompt { font-size: 1.3rem; line-height: 2rem; }
+      header { margin-bottom: 2rem; }
+      .results .big-stats { gap: 2.5rem; }
+      .results .big-stats .stat .value { font-size: 4rem; }
+    }
   </style>
 </head>
 <body>
-  <h1>acullo</h1>
+  <header>
+    <h1>acullo</h1>
+    <nav>
+      <button id="nav-type" class="active">type</button>
+      <button id="nav-history">history</button>
+    </nav>
+  </header>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="value" id="wpm">—</div>
-      <div class="label">wpm</div>
-    </div>
-    <div class="stat">
-      <div class="value" id="acc">—</div>
-      <div class="label">accuracy</div>
-    </div>
-  </div>
+  <main>
+    <section id="view-type">
+      <div class="live" id="live">
+        <div><span id="live-time">0s</span></div>
+        <div id="live-wpm">0<span>wpm</span></div>
+        <div id="live-acc">100<span>%</span></div>
+      </div>
 
-  <div id="status">loading...</div>
+      <div class="prompt" id="prompt"></div>
+      <input id="input" autocomplete="off" autocapitalize="off" spellcheck="false" />
+
+      <div class="controls">
+        <button id="restart" title="restart (tab + enter)">↻ new test</button>
+      </div>
+
+      <div class="results" id="results">
+        <div class="big-stats">
+          <div class="stat">
+            <div class="value" id="r-wpm">0</div>
+            <div class="label">wpm</div>
+          </div>
+          <div class="stat">
+            <div class="value" id="r-acc">0%</div>
+            <div class="label">accuracy</div>
+          </div>
+        </div>
+        <div class="meta">
+          <div>time <strong id="r-time">0s</strong></div>
+          <div>chars <strong id="r-chars">0</strong></div>
+          <div>errors <strong id="r-errors">0</strong></div>
+        </div>
+      </div>
+
+      <div id="status"></div>
+    </section>
+
+    <section id="view-history" class="history">
+      <h2>recent runs</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>when</th>
+            <th>wpm</th>
+            <th>accuracy</th>
+            <th>time</th>
+            <th>errors</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="5" style="color:var(--sub)">loading...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
 
   <footer>
-    <a href="https://monkeytype.com/profile/acullo" target="_blank">monkeytype</a>
+    <a href="https://github.com/aidencullo/typing.aidencullo.com" target="_blank">source</a>
   </footer>
 
-  <script>
-    async function load() {
-      try {
-        const res = await fetch('https://api.monkeytype.com/users/acullo/profile');
-        if (!res.ok) throw new Error();
-        const { data } = await res.json();
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        const pb = data.personalBests ?? {};
-        const wpms = [], accs = [];
+    const SUPABASE_URL = 'https://eaevppdtlgyoptsizdpr.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_-wK9zQtKzvcFBhh3uagbng_-UxyZI8Y';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        for (const modeObj of Object.values(pb)) {
-          for (const entries of Object.values(modeObj)) {
-            if (!entries.length) continue;
-            const best = entries.reduce((a, b) => b.wpm > a.wpm ? b : a);
-            wpms.push(best.wpm);
-            if (best.acc != null) accs.push(best.acc);
-          }
-        }
+    const PROMPTS = [
+      "the quick brown fox jumps over the lazy dog while the sun sets behind the distant mountains and the river flows quietly through the valley below",
+      "a journey of a thousand miles begins with a single step but the path is rarely straight and the destination is often different from what we first imagined",
+      "in the middle of every difficulty lies opportunity though it is often hidden beneath layers of doubt fear and the noise of everyday concerns we cannot ignore",
+      "she sells seashells by the seashore and the shells she sells are surely seashells so if she sells shells on the seashore she is selling seashore shells",
+      "to be or not to be that is the question whether tis nobler in the mind to suffer the slings and arrows of outrageous fortune or to take arms against a sea of troubles",
+      "the only way to do great work is to love what you do and if you have not found it yet keep looking and do not settle as with all matters of the heart you will know",
+      "all that we are is the result of what we have thought the mind is everything what we think we become and the world we see is the world we have built ourselves",
+      "good code is its own best documentation as you are about to add a comment ask yourself how can i improve the code so that this comment is not needed at all",
+      "the trouble with having an open mind of course is that people will insist on coming along and trying to put things in it that do not belong there at all",
+      "winter is coming and the nights grow long the wind howls through the empty streets while the last leaves fall from the trees and the world prepares for sleep",
+    ];
 
-        document.getElementById('wpm').textContent = wpms.length
-          ? Math.round(wpms.reduce((a, b) => a + b) / wpms.length)
-          : '—';
-        document.getElementById('acc').textContent = accs.length
-          ? Math.round(accs.reduce((a, b) => a + b) / accs.length) + '%'
-          : '—';
-        const now = new Date();
-        document.getElementById('status').textContent =
-          'updated ' + now.toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const $ = (id) => document.getElementById(id);
+    const promptEl = $('prompt');
+    const inputEl = $('input');
+    const liveEl = $('live');
+    const statusEl = $('status');
 
-      } catch {
-        document.getElementById('status').textContent = 'could not load stats';
-      }
+    let prompt = '';
+    let typed = '';
+    let startedAt = null;
+    let finishedAt = null;
+    let errors = 0;
+    let liveTimer = null;
+
+    function pickPrompt() {
+      return PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
     }
 
-    load();
+    function renderPrompt() {
+      const chars = [];
+      for (let i = 0; i < prompt.length; i++) {
+        let cls = 'char';
+        if (i < typed.length) {
+          cls += typed[i] === prompt[i] ? ' correct' : ' incorrect';
+        } else if (i === typed.length) {
+          cls += ' cursor';
+        }
+        const ch = prompt[i] === ' ' ? '&nbsp;' : prompt[i].replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+        chars.push(`<span class="${cls}">${ch}</span>`);
+      }
+      promptEl.innerHTML = chars.join('');
+    }
+
+    function calcWpm() {
+      if (!startedAt) return 0;
+      const end = finishedAt ?? Date.now();
+      const minutes = (end - startedAt) / 60000;
+      if (minutes <= 0) return 0;
+      // standard wpm: correct chars / 5 / minutes
+      let correct = 0;
+      for (let i = 0; i < typed.length; i++) if (typed[i] === prompt[i]) correct++;
+      return Math.round((correct / 5) / minutes);
+    }
+
+    function calcAccuracy() {
+      if (typed.length === 0) return 100;
+      const totalKeystrokes = typed.length + errors;
+      if (totalKeystrokes === 0) return 100;
+      return Math.round(((totalKeystrokes - errors) / totalKeystrokes) * 100);
+    }
+
+    function updateLive() {
+      if (!startedAt || finishedAt) return;
+      const secs = Math.floor((Date.now() - startedAt) / 1000);
+      $('live-time').textContent = secs + 's';
+      $('live-wpm').firstChild.textContent = calcWpm();
+      $('live-acc').firstChild.textContent = calcAccuracy();
+    }
+
+    function reset() {
+      prompt = pickPrompt();
+      typed = '';
+      startedAt = null;
+      finishedAt = null;
+      errors = 0;
+      clearInterval(liveTimer);
+      liveEl.classList.remove('visible');
+      $('results').classList.remove('visible');
+      statusEl.textContent = '';
+      $('live-time').textContent = '0s';
+      $('live-wpm').firstChild.textContent = '0';
+      $('live-acc').firstChild.textContent = '100';
+      renderPrompt();
+      inputEl.value = '';
+      inputEl.focus();
+    }
+
+    async function finish() {
+      finishedAt = Date.now();
+      clearInterval(liveTimer);
+      const wpm = calcWpm();
+      const acc = calcAccuracy();
+      const duration = Math.max(1, Math.round((finishedAt - startedAt) / 1000));
+
+      $('r-wpm').textContent = wpm;
+      $('r-acc').textContent = acc + '%';
+      $('r-time').textContent = duration + 's';
+      $('r-chars').textContent = typed.length;
+      $('r-errors').textContent = errors;
+      $('results').classList.add('visible');
+
+      statusEl.textContent = 'saving...';
+      const { error } = await supabase.from('typing_results').insert({
+        wpm, accuracy: acc, duration_seconds: duration,
+        characters_typed: typed.length, errors, prompt_text: prompt,
+      });
+      statusEl.textContent = error ? 'save failed: ' + error.message : 'saved · press tab+enter or click new test';
+    }
+
+    inputEl.addEventListener('input', (e) => {
+      if (finishedAt) return;
+      const val = e.target.value;
+      // count new errors
+      if (val.length > typed.length) {
+        const newChar = val[val.length - 1];
+        const expected = prompt[val.length - 1];
+        if (newChar !== expected) errors++;
+      }
+      typed = val.slice(0, prompt.length);
+      if (!startedAt && typed.length > 0) {
+        startedAt = Date.now();
+        liveEl.classList.add('visible');
+        liveTimer = setInterval(updateLive, 200);
+      }
+      renderPrompt();
+      if (typed.length === prompt.length) {
+        // require all correct? no — finish either way, accuracy reflects mistakes
+        finish();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') { e.preventDefault(); inputEl.focus(); return; }
+      if (e.key === 'Enter' && (finishedAt || e.shiftKey)) { e.preventDefault(); reset(); return; }
+      if (document.activeElement !== inputEl && e.key.length === 1) inputEl.focus();
+    });
+
+    promptEl.addEventListener('click', () => inputEl.focus());
+    $('restart').addEventListener('click', reset);
+
+    // nav
+    const navType = $('nav-type'), navHistory = $('nav-history');
+    const viewType = $('view-type'), viewHistory = $('view-history');
+
+    navType.addEventListener('click', () => {
+      navType.classList.add('active'); navHistory.classList.remove('active');
+      viewType.style.display = ''; viewHistory.classList.remove('visible');
+      inputEl.focus();
+    });
+
+    navHistory.addEventListener('click', async () => {
+      navHistory.classList.add('active'); navType.classList.remove('active');
+      viewType.style.display = 'none'; viewHistory.classList.add('visible');
+      await loadHistory();
+    });
+
+    async function loadHistory() {
+      const body = $('history-body');
+      body.innerHTML = '<tr><td colspan="5" style="color:var(--sub)">loading...</td></tr>';
+      const { data, error } = await supabase
+        .from('typing_results')
+        .select('created_at,wpm,accuracy,duration_seconds,errors')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) {
+        body.innerHTML = `<tr><td colspan="5" style="color:var(--error)">${error.message}</td></tr>`;
+        return;
+      }
+      if (!data.length) {
+        body.innerHTML = '<tr><td colspan="5" style="color:var(--sub)">no runs yet — go type</td></tr>';
+        return;
+      }
+      const fmt = (iso) => {
+        const d = new Date(iso);
+        return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      };
+      body.innerHTML = data.map(r => `
+        <tr>
+          <td>${fmt(r.created_at)}</td>
+          <td class="wpm">${r.wpm}</td>
+          <td>${r.accuracy}%</td>
+          <td>${r.duration_seconds}s</td>
+          <td>${r.errors}</td>
+        </tr>
+      `).join('');
+    }
+
+    reset();
   </script>
 </body>
 </html>
